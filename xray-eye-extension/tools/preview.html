@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<!--
+  GENERATED FILE — do not edit.
+
+  Produced by tools/build-preview.js from panel/panel.html.
+  Edit the real panel and re-run:  node tools/build-preview.js
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>x-ray-eye — panel preview</title>
+<link rel="stylesheet" href="../panel/panel.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="topline">
+    <div class="brand">
+      <span class="dot" id="liveDot" title="scanner state"></span>
+      <span class="name">x-ray-eye</span>
+      <span class="ver" id="verTag">v–</span>
+    </div>
+
+    <div class="page" id="pageUrl" title="page being scanned">no page</div>
+
+    <div class="counts" id="counts"></div>
+  </div>
+
+  <div class="toolline">
+    <input id="search" type="search" placeholder="filter…" autocomplete="off" spellcheck="false">
+    <select id="sevFilter" title="minimum severity">
+      <option value="">all severities</option>
+      <option value="CRITICAL">critical+</option>
+      <option value="HIGH">high+</option>
+      <option value="MEDIUM">medium+</option>
+      <option value="LOW">low+</option>
+    </select>
+    <button id="btnRescan"  title="re-read the DOM and page source">rescan</button>
+    <button id="btnSweep"   title="re-sweep storage, IndexedDB, caches, service workers">sweep</button>
+    <button id="btnRead"    class="warn" title="actively GET every discovered route — these hit the target's logs">read all</button>
+    <button id="btnClear"   class="warn" title="discard every finding">clear</button>
+    <button id="btnToggle"  class="start" title="start capturing on this page">start</button>
+    <button id="btnSettings" class="icon" title="settings">⚙</button>
+  </div>
+</header>
+
+<div id="banner" class="banner hidden"></div>
+
+<nav id="tabs">
+  <button data-tab="dashboard" class="on">Overview</button>
+  <button data-tab="endpoints">Endpoints <i data-count="endpoints"></i></button>
+  <button data-tab="creds">Credentials <i data-count="secrets"></i></button>
+  <button data-tab="jwt">JWT <i data-count="jwt"></i></button>
+  <button data-tab="storage">Storage <i data-count="storage"></i></button>
+  <button data-tab="auth">Auth flows <i data-count="authFlows"></i></button>
+  <button data-tab="exposure">Exposure <i data-count="exposed"></i></button>
+  <button data-tab="security">Security <i data-count="security"></i></button>
+  <button data-tab="stack">Stack <i data-count="frameworks"></i></button>
+  <button data-tab="specs">Specs <i data-count="specs"></i></button>
+  <button data-tab="notes">Notes <i data-count="notes"></i></button>
+  <button data-tab="export">Export</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+
+<main id="view">
+
+  <!-- ------------------------------------------------------- Overview -->
+  <section class="pane on" id="pane-dashboard">
+    <!-- Anything MEDIUM or worse is repeated here. A finding that lives only
+         on a tab nobody opened has failed as surely as one never detected. -->
+    <div class="secbanner" id="secBanner"></div>
+    <div class="grid tiles" id="dashTiles"></div>
+    <div class="cols">
+      <div class="card">
+        <h3>Coverage by channel</h3>
+        <p class="hint">What was inspected versus what it produced. A channel with
+          inspections but no findings is a clean channel; zero inspections is an
+          untested one.</p>
+        <div id="dashCoverage"></div>
+      </div>
+      <div class="card">
+        <h3>Credential severity</h3>
+        <div id="dashSeverity"></div>
+      </div>
+      <div class="card">
+        <h3>Endpoint confidence</h3>
+        <p class="hint">A route known only from a code reference is a lead, never a
+          confirmed endpoint, so it is capped at medium however strong the static
+          signal was.</p>
+        <div id="dashConf"></div>
+      </div>
+      <div class="card">
+        <h3>Busiest endpoints</h3>
+        <div id="dashTopEndpoints"></div>
+      </div>
+      <div class="card">
+        <h3>Credentials that look real</h3>
+        <p class="hint">Classified <code>real</code> — not a fixture, and not a string
+          that merely looked like a credential.</p>
+        <div id="dashTopSecrets"></div>
+      </div>
+      <div class="card">
+        <h3>Detected stack</h3>
+        <div id="dashFrameworks"></div>
+      </div>
+      <div class="card">
+        <h3>Scanner internals</h3>
+        <div id="dashStats"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------ Endpoints -->
+  <section class="pane" id="pane-endpoints">
+    <div class="subbar">
+      <label><input type="checkbox" id="epOnlyObserved"> observed only</label>
+      <label><input type="checkbox" id="epOnlyFirstParty"> hide third-party</label>
+      <label><input type="checkbox" id="epOnlyIdor"> IDOR candidates</label>
+      <label><input type="checkbox" id="epOnlyNoAuth"> no-auth / wildcard CORS</label>
+      <label><input type="checkbox" id="epOnlyChallenge"> sends auth challenge</label>
+      <span class="grow"></span>
+      <span class="muted" id="epMeta"></span>
+    </div>
+    <div class="tablewrap"><table class="tbl" id="tblEndpoints">
+      <thead><tr>
+        <th data-sort="confidence">conf</th><th data-sort="state">state</th>
+        <th data-sort="method">method</th><th data-sort="url">url</th>
+        <th data-sort="count" class="num">hits</th><th data-sort="statuses">status</th>
+        <th>flags</th><th class="actcol"></th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- ---------------------------------------------------- Credentials -->
+  <section class="pane" id="pane-creds">
+    <div class="subbar">
+      <label>triage
+        <select id="crdVerdict">
+          <option value="">everything</option>
+          <option value="real">real credentials</option>
+          <option value="fixture">fixtures / decoys</option>
+          <option value="arbitrary">credential-shaped, arbitrary</option>
+        </select>
+      </label>
+      <label>channel
+        <select id="crdChannel"><option value="">all</option></select>
+      </label>
+      <label class="chk"><input type="checkbox" id="crdMask"> mask values</label>
+      <span class="grow"></span>
+      <span class="muted" id="crdMeta"></span>
+    </div>
+    <div id="crdPairs"></div>
+    <div class="tablewrap"><table class="tbl" id="tblSecrets">
+      <thead><tr>
+        <th data-sort="severity">sev</th><th data-sort="verdict">verdict</th>
+        <th data-sort="name">name</th><th data-sort="type">type</th>
+        <th data-sort="value">value</th><th data-sort="file">where / exposure</th>
+        <th class="actcol"></th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- ----------------------------------------------------------- JWT -->
+  <section class="pane" id="pane-jwt">
+    <div class="tablewrap"><table class="tbl" id="tblJwt">
+      <thead><tr>
+        <th data-sort="severity">sev</th><th data-sort="alg">alg</th>
+        <th data-sort="sub">sub</th><th data-sort="iss">iss</th><th>aud</th>
+        <th data-sort="exp">exp</th><th>signals</th><th data-sort="token">token</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- -------------------------------------------------------- Storage -->
+  <section class="pane" id="pane-storage">
+    <div class="tablewrap"><table class="tbl" id="tblStorage">
+      <thead><tr>
+        <th data-sort="area">area</th><th data-sort="name">name</th>
+        <th data-sort="value">value</th><th data-sort="length" class="num">len</th>
+        <th>flags</th><th>pii</th><th data-sort="at">at</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- ----------------------------------------------------- Auth flows -->
+  <section class="pane" id="pane-auth">
+    <div class="tablewrap"><table class="tbl" id="tblAuth">
+      <thead><tr>
+        <th data-sort="severity">sev</th><th data-sort="flow">flow</th>
+        <th data-sort="url">authorization url</th><th>redirects</th>
+        <th>state</th><th data-sort="at">at</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+    <h3 class="sect">Hardcoded login pairs</h3>
+    <div id="authPairs"></div>
+  </section>
+
+  <!-- ------------------------------------------------------- Exposure -->
+  <section class="pane" id="pane-exposure">
+    <div class="subbar">
+      <label>kind
+        <select id="expKind">
+          <option value="">everything exposed</option>
+          <option value="secret">secrets</option>
+          <option value="endpoint-credential">credentials in URLs</option>
+          <option value="directory-listing">directory indexes</option>
+          <option value="served-dotfile">served dotfiles</option>
+          <option value="sensitive-path">sensitive paths</option>
+          <option value="pii-exposure">PII in responses</option>
+          <option value="pii-route">likely PII routes</option>
+        </select>
+      </label>
+    </div>
+    <div class="tablewrap"><table class="tbl" id="tblExposure">
+      <thead><tr>
+        <th data-sort="severity">sev</th><th data-sort="kind">kind</th>
+        <th data-sort="title">what</th><th data-sort="where">where</th>
+        <th data-sort="exposure">exposure</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- -------------------------------------------------------- Security -->
+  <!-- The basis column is not decoration. Every row says whether it was read
+       out of a response (OBSERVED), needs one payload to settle (CANDIDATE),
+       or needs two accounts to settle (HYPOTHESIS). A security panel that
+       blurs those is worse than no panel, because it makes a hypothesis look
+       like a verdict. -->
+  <section class="pane" id="pane-security">
+    <div class="cols">
+      <div class="card">
+        <h3>What this analyzer does not do</h3>
+        <p class="hint">Read this before acting on anything below.</p>
+        <ul class="limits" id="secLimits"></ul>
+      </div>
+      <div class="card">
+        <h3>Groups</h3>
+        <div id="secGroups"></div>
+      </div>
+    </div>
+    <div class="sechead">
+      <span class="muted" id="secMeta"></span>
+    </div>
+    <div class="tablewrap"><table class="tbl" id="tblSecurity">
+      <thead><tr>
+        <th data-sort="severity">sev</th><th data-sort="kind">group</th>
+        <th data-sort="title">what</th><th data-sort="where">where</th>
+        <th data-sort="basis">basis</th>
+      </tr></thead><tbody></tbody>
+    </table>
+      <div class="empty" id="secEmpty" style="display:none"></div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- Stack -->
+  <section class="pane" id="pane-stack">
+    <div class="cols">
+      <div class="card"><h3>Framework fingerprints</h3><div id="stackFw"></div></div>
+      <div class="card"><h3>Server actions</h3><div id="stackSa"></div></div>
+      <div class="card"><h3>Service workers</h3><div id="stackSw"></div></div>
+      <div class="card">
+        <h3>What was found</h3>
+        <p class="hint">Severity counts, secret channels and note kinds for the
+          current page.</p>
+        <div id="stackMix"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- Specs -->
+  <section class="pane" id="pane-specs">
+    <div class="tablewrap"><table class="tbl" id="tblSpecs">
+      <thead><tr>
+        <th data-sort="url">spec</th><th data-sort="kind">kind</th>
+        <th data-sort="title">title</th><th data-sort="version">version</th>
+        <th data-sort="endpoints" class="num">endpoints</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- ---------------------------------------------------------- Notes -->
+  <section class="pane" id="pane-notes">
+    <div class="subbar">
+      <label>kind
+        <select id="noteKind"><option value="">every note</option></select>
+      </label>
+      <span class="muted" id="noteMeta"></span>
+    </div>
+    <div class="tablewrap"><table class="tbl" id="tblNotes">
+      <thead><tr>
+        <th data-sort="kind">kind</th><th data-sort="severity">sev</th>
+        <th data-sort="label">label</th><th data-sort="file">where</th>
+        <th>detail</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- --------------------------------------------------------- Export -->
+  <section class="pane" id="pane-export">
+    <div class="cols">
+<div class="card">
+        <h3>Reports</h3>
+        <p class="hint">Rendered by the scanner itself — the same text the console
+          reports produce, without the scrolling.</p>
+
+        <div class="fmts">
+          <div class="fmt">
+            <span class="fname">Markdown report</span>
+            <button id="expMd">preview</button>
+            <button id="saveMd">save .md</button>
+          </div>
+          <div class="fmt">
+            <span class="fname">JSON export</span>
+            <button id="expJson">preview</button>
+            <button id="saveJson">save .json</button>
+          </div>
+          <div class="fmt">
+            <span class="fname">Endpoint CSV</span>
+            <button id="expCsv">preview</button>
+            <button id="saveCsv">save .csv</button>
+          </div>
+          <div class="fmt">
+            <span class="fname">Secrets CSV</span>
+            <button id="expSCsv">preview</button>
+            <button id="saveSCsv">save .csv</button>
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button id="expCopy">Copy preview</button>
+          <button id="expMark">Mark this state</button>
+        </div>
+        <div id="marksBox"></div>
+      </div>
+      <div class="card wide">
+        <h3>Preview</h3>
+        <p class="hint" id="expNote"></p>
+        <pre id="expPreview" class="preview">choose a report</pre>
+      </div>
+      <div class="card">
+        <h3>Session actions</h3>
+        <p class="hint">Anything below sends traffic the application did not send
+          itself.</p>
+        <div class="btnrow">
+          <button id="actAuthorize" class="warn">Authorize active reads</button>
+          <button id="actProbeDry"  class="warn">Probe (dry run)</button>
+        </div>
+        <div id="expLog" class="log"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pane" id="pane-settings">
+    <div class="cols">
+      <div class="card">
+        <h3>When to run</h3>
+
+        <label class="opt">
+          <input type="checkbox" id="setAuto">
+          <span>
+            <b>Start automatically on every page</b>
+            <i>Off by default. With it off nothing is injected until you press
+              Start, so the scanner costs nothing on the sites you are just
+              browsing. With it on it injects on every navigation, which is
+              slower on every site — including the ones you are not testing.</i>
+          </span>
+        </label>
+
+        <label class="opt">
+          <input type="checkbox" id="setKeep">
+          <span>
+            <b>Keep findings when the page reloads</b>
+            <i>Off clears the capture on every reload, which is what you want
+              when the value of a finding is the page you just left.</i>
+          </span>
+        </label>
+
+        <div id="regState" class="regstate"></div>
+      </div>
+
+      <div class="card">
+        <h3>Sites allowed to start automatically</h3>
+        <p class="hint">Only used when <b>Start automatically</b> is on. Empty
+          means every site. One pattern per line, in match-pattern form —
+          <code>https://*.example.com</code>, or an exact
+          <code>https://app.example.test</code>.</p>
+        <textarea id="setAllow" class="allow" rows="9" spellcheck="false"
+          placeholder="https://app.example.test&#10;https://*.staging.example.test"></textarea>
+        <div class="btnrow">
+          <button id="setSave" class="wide">Save</button>
+          <button id="setClear" class="wide">Clear list</button>
+        </div>
+        <div id="setMsg" class="hint"></div>
+      </div>
+
+      <div class="card">
+        <h3>This tab</h3>
+        <p class="hint">Manual Start always works on the current tab, whatever
+          the allowlist says. The allowlist only governs automatic injection.</p>
+        <div class="btnrow">
+          <button id="setStartTab" class="wide">Start on this tab</button>
+          <button id="setStopTab" class="wide">Stop on this tab</button>
+        </div>
+        <div id="tabState" class="regstate"></div>
+      </div>
+
+      <div class="card">
+        <h3>Opening the panel</h3>
+        <p class="hint">The toolbar icon should open this panel. If it does
+          nothing, the line below says whether the extension is alive at all.</p>
+        <div class="btnrow">
+          <button id="diagOpen" class="wide">Open the panel</button>
+        </div>
+        <div id="diag" class="regstate">checking…</div>
+        <p class="hint">Shortcut: <code>Ctrl+Shift+E</code>. If the icon keeps
+          sliding out of the toolbar, right-click it and tick <b>Pin</b>.</p>
+      </div>
+
+      <div class="card">
+        <h3>Data</h3>
+        <div class="btnrow">
+          <button id="setWipe" class="wide">Forget everything captured</button>
+        </div>
+        <p class="hint">Clears the scanner's findings for this tab only. Other
+          tabs and saved reports are untouched.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<aside id="drawer" class="drawer">
+  <div class="dhead">
+    <strong id="dTitle">Detail</strong>
+    <button id="dOpen" class="dact" title="open this URL in a new background tab" hidden>open ↗</button>
+    <button id="dCopy" class="dact" title="copy this URL" hidden>copy URL</button>
+    <button id="dClose" title="close">✕</button>
+  </div>
+  <div class="dbody">
+    <dl id="dSummary"></dl>
+    <pre id="dJson" class="preview"></pre>
+  </div>
+</aside>
+<div id="scrim" class="scrim hidden"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="fixture.js"></script>
+<script src="fixture-security.js"></script>
+<script src="preview-shim.js"></script>
+<script src="../panel/panel.js"></script>
+</body>
+</html>
