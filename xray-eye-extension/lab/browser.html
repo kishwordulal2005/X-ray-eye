@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>x-ray-eye lab harness</title>
+</head>
+<body>
+<!--
+  lab/browser.html - the lab, driven by a real browser.
+
+  The vm sandbox in lab/check.js proves the analyzer's logic. This page proves
+  the same thing against a real browser: real fetch, real Set-Cookie headers,
+  real streams, real HTML parsing, real timers. Anything that only works
+  because a mock agreed with it fails here.
+
+  Load it with ?level=L1 .. L4. It runs that level's traffic, then parks the
+  result on window.__lab for DevTools to read.
+-->
+<pre id="out">running...</pre>
+<script src="/__src/quiet.js"></script>
+<script src="/__src/engine.js"></script>
+<script>
+(async () => {
+  const out = document.getElementById("out");
+  const level = (new URLSearchParams(location.search).get("level") || "L1").toLowerCase();
+  const origin = location.origin;
+
+  const reqs = {
+    l1: ["/l1/session", "/l1/invoice", "/l1/ping"],
+    l2: ["/l2/lookup?ref=alpha-beta9", "/l2/redirect?next=alpha-beta9",
+         "/l2/greet?name=alpha-beta9", "/l2/report", "/l2/customers"],
+    l3: ["/l3/dashboard", "/l3/admin/orders", "/l3/orders", "/l3/config"],
+    l4: ["/l4/env", "/l4/token", "/l4/render?t=alpha-beta9", "/l4/me",
+         "/l4/page", "/l4/logout"]
+  };
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    // The page's own document first, exactly as a browser would.
+    await fetch(origin + "/" + level + "/page").catch(() => {});
+    for (const r of (reqs[level] || [])) {
+      await fetch(origin + r).catch(() => {});
+      await sleep(60);
+    }
+    await sleep(900);
+
+    const s = xrayeye.securityAnalysis();
+    const groups = ["headers", "leaks", "injection", "authz", "session"];
+    const lines = [];
+    let total = 0;
+    for (const g of groups) {
+      lines.push(g + " (" + s[g].length + ")");
+      total += s[g].length;
+      for (const f of s[g]) {
+        lines.push("  [" + f.severity + "/" + f.basis + "] " + f.id);
+      }
+    }
+    const result = {
+      level: level.toUpperCase(),
+      endpoints: xrayeye.findings({}).length,
+      coverage: s.coverage,
+      total: total,
+      counts: s.counts,
+      ids: {
+        headers: s.headers.map(f => f.id),
+        leaks: s.leaks.map(f => f.id),
+        injection: s.injection.map(f => f.id),
+        authz: s.authz.map(f => f.id),
+        session: s.session.map(f => f.id)
+      },
+      summary: lines
+    };
+    window.__lab = result;
+    out.textContent = JSON.stringify(result, null, 2);
+    document.title = "done:" + result.total;
+  } catch (e) {
+    window.__lab = { error: String((e && e.stack) || e) };
+    out.textContent = window.__lab.error;
+    document.title = "error";
+  }
+})();
+</script>
+</body>
+</html>

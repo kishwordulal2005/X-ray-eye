@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>x-ray-eye — source</title>
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+
+<header id="bar">
+  <div class="line1">
+    <strong>source</strong>
+    <a id="srcUrl" target="_blank" rel="noopener"></a>
+  </div>
+  <div class="line2">
+    <span id="what" class="what"></span>
+    <span class="grow"></span>
+    <span id="count" class="muted"></span>
+    <button id="copyLine">copy line</button>
+    <a id="openRaw" class="btn" target="_blank" rel="noopener" hidden>open raw</a>
+  </div>
+</header>
+
+<div id="status" class="status"></div>
+<div id="hint" class="hint" hidden>
+  The highlighted line is where the finding was mapped. A line mapped from a
+  serialized DOM rather than the file itself is marked approximate in the
+  panel.
+</div>
+
+<main id="code" class="code"></main>
+
+<script src="viewer.js"></script>
+</body>
+</html>
