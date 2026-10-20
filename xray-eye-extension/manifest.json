@@ -1,0 +1,58 @@
+{
+    "manifest_version":  3,
+    "name":  "x-ray-eye",
+    "version":  "3.2.1",
+    "description":  "Passive browser-side attack-surface discovery for authorized security testing. Endpoints, credentials, JWTs, storage, auth flows, cookies, subdomains, specs and frameworks in one panel. By unknonehart.",
+    "minimum_chrome_version":  "116",
+    "author":  "unknonehart",
+    "homepage_url":  "https://www.instagram.com/un1kn0n3_h4rt/",
+    "permissions":  [
+                        "sidePanel",
+                        "tabs",
+                        "storage",
+                        "downloads",
+                        "scripting",
+                        "webRequest",
+                        "cookies"
+                    ],
+    "host_permissions":  [
+                             "http://*/*",
+                             "https://*/*",
+                             "file:///*"
+                         ],
+    "background":  {
+                       "service_worker":  "src/background.js"
+                   },
+    "action":  {
+                   "default_title":  "x-ray-eye - open scanner panel"
+               },
+    "side_panel":  {
+                       "default_path":  "panel/panel.html"
+                   },
+    "commands":  {
+                     "open-panel":  {
+                                        "suggested_key":  {
+                                                              "default":  "Ctrl+Shift+E"
+                                                          },
+                                        "description":  "Open the x-ray-eye side panel"
+                                    }
+                 },
+    "icons":  {
+                  "16":  "icons/icon16.png",
+                  "48":  "icons/icon48.png",
+                  "128":  "icons/icon128.png"
+              },
+    "web_accessible_resources":  [
+                                     {
+                                         "resources":  [
+                                                           "panel/*",
+                                                           "icons/*"
+                                                       ],
+                                         "matches":  [
+                                                         "http://*/*",
+                                                         "https://*/*",
+                                                         "file:///*"
+                                                     ]
+                                     }
+                                 ]
+}
