@@ -31,6 +31,32 @@ Both files have had their comments removed, so the two read the same way. The co
 
 ---
 
+## What's new in 3.2.4
+
+### The Stack tab now reads real stacks
+
+- **Frameworks and build tools are detected from the running page**, not only from markup and asset names. React is found through `React.classic` / `ReactDOM.classic` module names, React fiber keys, `data-reactroot` and runtime globals. Vue, Angular, Svelte, Ember, htmx, Next, Nuxt and others use the same mix of runtime, DOM and markup signals.
+- **Meta Spin** is recognised alongside webpack, Vite, Parcel, SystemJS and RequireJS. Instagram's markup, for example, matches `react` and `Meta Spin` instead of `none`.
+- **Server & platform reads the document's own response headers.** The scanner fetches the page it is already on and records the headers itself, so the section no longer depends on the service worker having seen the original request. Platform fingerprints — Meta web platform, Cloudflare, Vercel, Fastly, CloudFront, Akamai, Azure Front Door, Envoy, Netlify, Shopify, Next.js edge — appear even when no version is disclosed. Only first-party responses are used, so an embedded third-party widget cannot be reported as the site's stack.
+- **Advisory matching reads both `tech-cve:` and `cve:` rows.** When no version is disclosed, the tab names the fingerprints that have no version rather than showing a bare `none`.
+- **Host rows are formatted correctly** — `19 requests`, or `3 paths · 45 requests` — instead of `3p1 path(s)`.
+
+### Fewer false-positive credentials
+
+Hardcoded credential detection now rejects UI copy, form and icon identifiers, ISO timestamps, base64 character tables, uppercase constants and camelCase identifiers before they can become findings. Values such as `form-icon-email-2`, `Kata Sandi`, `Forgot Password?`, `2026-10-25T05:46:16.431Z` and `CryptoJS.enc.Base64._map` are no longer reported as passwords or hardcoded login pairs. Real secrets, tokens and login pairs are still detected.
+
+### Findings survive reloads
+
+- Findings are saved before navigation and restored if the page reloads. Review statuses live in extension storage and survive independently.
+- Saved state is tagged with the analyser build (`security-3` in 3.2.4). A snapshot from an older build is discarded instead of being shown as current.
+- A page still holding an older injected scanner is replaced on **Start**; no manual reload is required, and the panel says what it is doing.
+
+### Upgrade note
+
+Reload the extension in `chrome://extensions`, reload the tab, then press **Start**. Version 3.2.4 ships analyser build `security-3`.
+
+---
+
 ## Install the extension
 
 **Requirements:** Chrome 116 or newer (the `sidePanel` API). No build step, no dependencies, no `npm install`.
@@ -120,7 +146,7 @@ That distinction is the point of the tab. A panel that blurs "I read this" and "
 | **Cookies** | read and write this site's cookies — see below |
 | **Exposure** | private addresses, internal hostnames, CMS versions, source maps |
 | **Subdomains** | the certificate-transparency log for the registered domain |
-| **Stack** | the server stack, known-bad versions, client libraries, build tools, hosting, service workers, server actions |
+| **Stack** | the server stack the page discloses, known-bad versions, platform and edge fingerprints, client libraries, build tools, hosting, service workers, server actions |
 | **Specs** | parsed OpenAPI / GraphQL / Postman documents |
 | **Notes** | every note, filterable by kind |
 | **Export** | markdown, JSON, endpoint CSV, secrets CSV — downloadable |
@@ -191,6 +217,8 @@ Being straight about this, because a tool that overstates its coverage is worse 
 - Subdomain discovery from the CT log, with the registered-domain reduction.
 - Third-party code analysis, on demand.
 - The diagnostics panel.
+- Runtime and DOM framework detection (React, Vue, Angular, Svelte, Next, Nuxt, Ember, htmx) and build-tool detection (webpack, Vite, Meta Spin, Parcel, SystemJS, RequireJS).
+- Platform and edge fingerprinting from first-party response headers.
 
 ### Known gaps
 
@@ -204,6 +232,8 @@ Being straight about this, because a tool that overstates its coverage is worse 
 | **DOM XSS in a third-party bundle is found on demand only** | the bundles are fetched when you ask, not as the page loads |
 | **"does not resolve" vs "no response" cannot be told apart on stable Chrome** | `chrome.dns` is dev-channel only, so the liveness check reports a failure without saying which kind |
 | **A request the page's own CSP blocked is marked `failed`, not traffic** | it never left the browser, and presenting it as captured traffic would be a lie |
+| **A server product is only named when it identifies itself** | sites that strip `Server` and `X-Powered-By` cannot be guessed; the Stack tab reports platform fingerprints instead and says that no product was disclosed |
+| **Library versions are only matched when the bundle states one** | React, Next and similar fingerprints without a version are listed, but no advisory is attached — a CVE matched to an unversioned fingerprint would be a guess |
 
 ### Blind spots, from the original
 
